@@ -1,0 +1,64 @@
+Description: Hard code in hardening options
+Forwarded: not-needed
+Author: Colin Ian King <colin.i.king@gmail.com>
+
+Index: intel-cmt-cat-23.11/lib/Makefile
+===================================================================
+--- intel-cmt-cat-23.11.orig/lib/Makefile	2023-11-01 14:00:13.000000000 +0100
++++ intel-cmt-cat-23.11/lib/Makefile	2024-02-21 08:55:18.864718246 +0100
+@@ -37,8 +37,8 @@
+ VERSION = 5.0.0
+ SO_VERSION = 5
+ SHARED ?= y
+-LDFLAGS = -L. -lpthread -z noexecstack -z relro -z now
+-CFLAGS = -pthread -I./ -D_GNU_SOURCE \
++LDFLAGS += -L. -lpthread -z noexecstack -z relro -z now
++CFLAGS += -pthread -I./ -D_GNU_SOURCE \
+ 	-W -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes \
+ 	-Wmissing-declarations -Wold-style-definition -Wpointer-arith \
+ 	-Wcast-qual -Wundef -Wwrite-strings \
+Index: intel-cmt-cat-23.11/pqos/Makefile
+===================================================================
+--- intel-cmt-cat-23.11.orig/pqos/Makefile	2023-11-01 14:00:13.000000000 +0100
++++ intel-cmt-cat-23.11/pqos/Makefile	2024-02-21 08:55:18.865718244 +0100
+@@ -36,9 +36,9 @@
+ 
+ OBJDIR = obj
+ LIBDIR ?= ../lib
+-LDFLAGS = -L$(LIBDIR) -pie -z noexecstack -z relro -z now
++LDFLAGS += -L$(LIBDIR) -pie -z noexecstack -z relro -z now
+ LDLIBS = -lpqos -lpthread
+-CFLAGS = -I$(LIBDIR) \
++CFLAGS += -I$(LIBDIR) \
+ 	-W -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes \
+ 	-Wmissing-declarations -Wold-style-definition -Wpointer-arith \
+ 	-Wcast-qual -Wundef -Wwrite-strings \
+Index: intel-cmt-cat-23.11/rdtset/Makefile
+===================================================================
+--- intel-cmt-cat-23.11.orig/rdtset/Makefile	2023-11-01 14:00:13.000000000 +0100
++++ intel-cmt-cat-23.11/rdtset/Makefile	2024-02-21 08:55:18.866718241 +0100
+@@ -35,9 +35,9 @@
+ ###############################################################################
+ 
+ LIBDIR ?= ../lib
+-LDFLAGS = -L$(LIBDIR) -pie -z noexecstack -z relro -z now
++LDFLAGS += -L$(LIBDIR) -pie -z noexecstack -z relro -z now
+ LDLIBS = -lpqos -lpthread
+-CFLAGS = -I$(LIBDIR) \
++CFLAGS += -I$(LIBDIR) \
+ 	-W -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes \
+ 	-Wmissing-declarations -Wold-style-definition -Wpointer-arith \
+ 	-Wcast-qual -Wundef -Wwrite-strings \
+Index: intel-cmt-cat-23.11/tools/membw/Makefile
+===================================================================
+--- intel-cmt-cat-23.11.orig/tools/membw/Makefile	2023-11-01 14:00:13.000000000 +0100
++++ intel-cmt-cat-23.11/tools/membw/Makefile	2024-02-21 08:55:18.866718241 +0100
+@@ -42,7 +42,7 @@
+ BIN_DIR = $(PREFIX)/bin
+ MAN_DIR = $(PREFIX)/man/man8
+ 
+-CFLAGS=-W -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes \
++CFLAGS += -W -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes \
+ 	-Wmissing-declarations -Wold-style-definition -Wpointer-arith \
+ 	-Wcast-qual -Wundef -Wwrite-strings \
+ 	-Wformat -Wformat-security -fstack-protector -fPIE \
