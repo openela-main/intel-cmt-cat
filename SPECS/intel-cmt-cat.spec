@@ -38,7 +38,7 @@
 
 Summary:            Provides command line interface to CMT, MBM, CAT, CDP and MBA technologies
 Name:               %{githubname}
-Release:            1%{?dist}
+Release:            2%{?dist}
 Version:            %{githubver}
 License:            BSD-3-Clause
 ExclusiveArch:      x86_64 i686 i586
@@ -49,6 +49,7 @@ Source:             https://github.com/intel/%{githubname}/archive/%{githubname}
 %endif
 
 Patch0001:          0001-allow-debian-flags-to-be-added.patch
+Patch0002:          0002-Revert-lib-update-detection-of-non-architectural-L3C.patch
 
 URL:                https://github.com/intel/%{githubname}
 BuildRequires:      gcc, make
@@ -206,6 +207,10 @@ install -m 0644 %{_builddir}/%{githubfull}/examples/c/PSEUDO_LOCK/tsc.h         
 %doc %{_usrsrc}/%{githubfull}/LICENSE
 
 %changelog
+* Fri Mar 01 2024 Eugene Syromiatnikov <esyr@redhat.com> - 23.11-2
+- Revert commit "lib: update detection of non-architectural L3CAT" that removed
+  L3CAT detection support on Tiger Lake and Erkhart Lake CPUs (RHEL-22729)
+
 * Mon Feb 12 2024 Eugene Syromiatnikov <esyr@redhat.com> - 23.11-1
 - Rebase to 23.11 (RHEL-22729, RHEL-25781)
 
