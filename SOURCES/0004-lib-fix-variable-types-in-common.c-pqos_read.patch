@@ -1,0 +1,51 @@
+From aadf13d6c87b6fe8d1393623757f826514eaad77 Mon Sep 17 00:00:00 2001
+From: Eugene Syromiatnikov <esyr@redhat.com>
+Date: Fri, 16 Aug 2024 16:02:40 +0200
+Subject: [PATCH 4/5] lib: fix variable types in common.c:pqos_read()
+
+The types used for len and ret variables in pqos_read do not match
+neither the function prototype, nor read() library call, which may lead
+to possible overflow;  while the ret overflow is arguably hypothetical
+on Linux, as it likely won't return a value greater than 0x7ffff000,
+which is less than INT_MAX, a potential overflow of len seems
+to be possible, as caller might pass count greater than INT_MAX.
+Fix it by changing the type of len to size_t, to match count,
+and the type of ret to ssize_t, to match the return type of read().
+
+Discovered by covscan:
+
+    Error: INTEGER_OVERFLOW (CWE-190):
+    intel-cmt-cat-23.11/lib/common.c:382: tainted_data_return: Called function "read(fd, byte_ptr, len)", and a possible return value may be less than zero.
+    intel-cmt-cat-23.11/lib/common.c:382: cast_overflow: An assign that casts to a different type, which might trigger an overflow.
+    intel-cmt-cat-23.11/lib/common.c:389: overflow: The expression "len" is considered to have possibly overflowed.
+    intel-cmt-cat-23.11/lib/common.c:382: overflow_sink: "len", which might be negative, is passed to "read(fd, byte_ptr, len)". [Note: The source code implementation of the function has been overridden by a builtin model.]
+    #  380|                   return -1;
+    #  381|
+    #  382|->         while (len != 0 && (ret = read(fd, byte_ptr, len)) != 0) {
+    #  383|                   if (ret == -1) {
+    #  384|                           if (errno == EINTR)
+
+Signed-off-by: Eugene Syromiatnikov <esyr@redhat.com>
+---
+ lib/common.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/common.c b/lib/common.c
+index 55584b34633a..c9688b82f99d 100644
+--- a/lib/common.c
++++ b/lib/common.c
+@@ -378,9 +378,9 @@ pqos_munmap(void *mem, const uint64_t size)
+ ssize_t
+ pqos_read(int fd, void *buf, size_t count)
+ {
+-        int len = count;
++        size_t len = count;
+         char *byte_ptr = (char *)buf;
+-        int ret;
++        ssize_t ret;
+ 
+         if (buf == NULL)
+                 return -1;
+-- 
+2.28.0
+
