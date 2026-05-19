@@ -24,7 +24,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 %global githubname   intel-cmt-cat
-%global githubver    23.11
+%global githubver    25.04
 
 %if %{defined githubsubver}
 %global githubfull   %{githubname}-%{githubver}.%{githubsubver}
@@ -38,7 +38,7 @@
 
 Summary:            Provides command line interface to CMT, MBM, CAT, CDP and MBA technologies
 Name:               %{githubname}
-Release:            2%{?dist}
+Release:            1%{?dist}
 Version:            %{githubver}
 License:            BSD-3-Clause
 ExclusiveArch:      x86_64 i686 i586
@@ -47,9 +47,6 @@ Source:             https://github.com/intel/%{githubname}/archive/%{githubname}
 %else
 Source:             https://github.com/intel/%{githubname}/archive/%{githubname}-%{githubver}.tar.gz
 %endif
-
-Patch0001:          0001-allow-debian-flags-to-be-added.patch
-Patch0002:          0002-Revert-lib-update-detection-of-non-architectural-L3C.patch
 
 URL:                https://github.com/intel/%{githubname}
 BuildRequires:      gcc, make
@@ -86,6 +83,29 @@ https://github.com/intel/%{githubname}
 
 %prep
 %autosetup -p1 -n %{githubfull}
+
+# lib: honor DESTDIR and drop ldconfig
+sed -i 's|\$(LIB_INSTALL_DIR)|$(DESTDIR)$(LIB_INSTALL_DIR)|g' lib/Makefile
+sed -i 's|\$(HDR_DIR)|$(DESTDIR)$(HDR_DIR)|g' lib/Makefile
+sed -i '/^[[:space:]]*ldconfig[[:space:]]*$/d' lib/Makefile
+
+# pqos: honor DESTDIR for binaries and man pages
+sed -i 's|\$(PREFIX)/bin|$(DESTDIR)$(PREFIX)/bin|g' pqos/Makefile
+sed -i 's|^MAN_DIR *=.*|MAN_DIR = $(DESTDIR)%{_mandir}/man8|' pqos/Makefile
+
+# rdtset: honor DESTDIR for binaries and man pages
+sed -i 's|\$(PREFIX)/bin|$(DESTDIR)$(PREFIX)/bin|g' rdtset/Makefile
+sed -i 's|^MAN_DIR *=.*|MAN_DIR = $(DESTDIR)%{_mandir}/man8|' rdtset/Makefile
+
+# membw: honor DESTDIR for binaries and man pages
+sed -i 's|\$(PREFIX)/bin|$(DESTDIR)$(PREFIX)/bin|g' tools/membw/Makefile
+sed -i 's|^MAN_DIR *=.*|MAN_DIR = $(DESTDIR)%{_mandir}/man8|' tools/membw/Makefile
+
+# Ensure CFLAGS/LDFLAGS are augmented (+=) instead of overwritten (=)
+for mf in $(find . -name Makefile); do
+    sed -i 's/^\(CFLAGS\)[[:space:]]*=/\1 +=/' "$mf"
+    sed -i 's/^\(LDFLAGS\)[[:space:]]*=/\1 +=/' "$mf"
+done
 
 %ldconfig_scriptlets
 
@@ -131,7 +151,7 @@ install -m 0644 %{_builddir}/%{githubfull}/LICENSE %{buildroot}/%{_licensedir}/%
 install -d %{buildroot}/%{_libdir}
 install -s %{_builddir}/%{githubfull}/lib/libpqos.so.* %{buildroot}/%{_libdir}
 cp -a %{_builddir}/%{githubfull}/lib/libpqos.so %{buildroot}/%{_libdir}
-cp -a %{_builddir}/%{githubfull}/lib/libpqos.so.5 %{buildroot}/%{_libdir}
+cp -a %{_builddir}/%{githubfull}/lib/libpqos.so.6 %{buildroot}/%{_libdir}
 
 # Install the header file
 install -d %{buildroot}/%{_includedir}
@@ -185,7 +205,7 @@ install -m 0644 %{_builddir}/%{githubfull}/examples/c/PSEUDO_LOCK/tsc.h         
 
 %files -n intel-cmt-cat-devel
 %{_libdir}/libpqos.so
-%{_libdir}/libpqos.so.5
+%{_libdir}/libpqos.so.6
 %{_includedir}/pqos.h
 %{_usrsrc}/%{githubfull}/c/CAT_MBA/Makefile
 %{_usrsrc}/%{githubfull}/c/CAT_MBA/README
@@ -207,6 +227,27 @@ install -m 0644 %{_builddir}/%{githubfull}/examples/c/PSEUDO_LOCK/tsc.h         
 %doc %{_usrsrc}/%{githubfull}/LICENSE
 
 %changelog
+* Fri Oct 24 2025 Tony Camuso <tcamuso@redhat.com> - 25.04-1
+- Update to latest upstream.
+- Clean up install paths, drop obsolete patches, and improve flag injection
+handling
+- Replaced hard-coded install paths in Makefiles with sed-based DESTDIR
+  fixes for lib, pqos, rdtset, and membw
+  - Using sed during %prep is more robust and version-agnostic than patching,
+    which requires rebasing each release
+- Relocated admin tools (pqos*, rdtset) from /usr/bin to /usr/sbin for FHS
+  compliance
+  - These tools require root and interact with system-level cache controls
+- Updated %files to match SONAME bump (libpqos.so.5 -> libpqos.so.6) introduced
+  upstream
+- Dropped patches 0001, 0002, 0004, 0005
+  - 0001/0002 replaced by sed
+- Ensure CFLAGS and LDFLAGS are augmented, not overridden by using sed to
+  convert assignments to +=
+  - Ensures compatibility with distro-injected flags (e.g. %{optflags},
+    hardening) without carrying a version-specific patch
+  Resolves: RHEL-122380
+
 * Fri Mar 01 2024 Eugene Syromiatnikov <esyr@redhat.com> - 23.11-2
 - Revert commit "lib: update detection of non-architectural L3CAT" that removed
   L3CAT detection support on Tiger Lake and Erkhart Lake CPUs (RHEL-22729)
