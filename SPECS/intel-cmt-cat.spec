@@ -1,24 +1,18 @@
-%global libpqos_ver 5.0.0
+%global libpqos_ver 6.0.1
 %global desc %{expand: \
 This package provides basic support for Intel Resource Director Technology
 including, Cache Monitoring Technology (CMT), Memory Bandwidth Monitoring
-(MBM), Cache Allocation Technology (CAT), Code and Data Prioritization 
+(MBM), Cache Allocation Technology (CAT), Code and Data Prioritization
 (CDP) and Memory Bandwidth Allocation (MBA).}
 
 Name:		intel-cmt-cat
-Version:	23.11
-Release:	6%{?dist}
+Version:	25.04
+Release:	1%{?dist}
 Summary:	Intel cache monitoring and allocation technology config tool
 
 License:	BSD-3-Clause
 URL: 		https://github.com/intel/intel-cmt-cat
 Source: 	%{url}/archive/v%{version}/%{name}-%{version}.tar.gz
-
-Patch0:		0001-alter-install-paths.patch
-Patch1:		0002-remove-build-and-install-of-examples.patch
-Patch2:		0003-allow-debian-flags-to-be-added.patch
-Patch3:		0004-lib-fix-variable-types-in-common.c-pqos_read.patch
-Patch4:		0005-lib-set-errno-when-buf-points-to-NULL-in-common.c-pq.patch
 
 ExclusiveArch:	x86_64
 
@@ -39,11 +33,40 @@ Development files.
 %prep
 %autosetup -p1 -n %{name}-%{version}
 
+# lib: honor DESTDIR and drop ldconfig
+sed -i 's|\$(LIB_INSTALL_DIR)|$(DESTDIR)$(LIB_INSTALL_DIR)|g' lib/Makefile
+sed -i 's|\$(HDR_DIR)|$(DESTDIR)$(HDR_DIR)|g' lib/Makefile
+sed -i '/^[[:space:]]*ldconfig[[:space:]]*$/d' lib/Makefile
+
+# pqos: honor DESTDIR for binaries and man pages
+sed -i 's|\$(PREFIX)/bin|$(DESTDIR)$(PREFIX)/bin|g' pqos/Makefile
+sed -i 's|^MAN_DIR *=.*|MAN_DIR = $(DESTDIR)%{_mandir}/man8|' pqos/Makefile
+
+# rdtset: honor DESTDIR for binaries and man pages
+sed -i 's|\$(PREFIX)/bin|$(DESTDIR)$(PREFIX)/bin|g' rdtset/Makefile
+sed -i 's|^MAN_DIR *=.*|MAN_DIR = $(DESTDIR)%{_mandir}/man8|' rdtset/Makefile
+
+# membw: honor DESTDIR for binaries and man pages
+sed -i 's|\$(PREFIX)/bin|$(DESTDIR)$(PREFIX)/bin|g' tools/membw/Makefile
+sed -i 's|^MAN_DIR *=.*|MAN_DIR = $(DESTDIR)%{_mandir}/man8|' tools/membw/Makefile
+
+# Ensure CFLAGS/LDFLAGS are augmented (+=) instead of overwritten (=)
+for mf in $(find . -name Makefile); do
+    sed -i 's/^\(CFLAGS\)[[:space:]]*=/\1 +=/' "$mf"
+    sed -i 's/^\(LDFLAGS\)[[:space:]]*=/\1 +=/' "$mf"
+done
+
 %build
 %make_build
 
 %install
-%make_install
+%make_install PREFIX=%{_prefix} LIB_INSTALL_DIR=%{_libdir} HDR_DIR=%{_includedir} MANDIR=%{_mandir}
+
+# Relocate admin tools from bin → sbin
+for tool in pqos pqos-msr pqos-os rdtset; do
+    install -D -m 0755 %{buildroot}%{_bindir}/$tool %{buildroot}%{_sbindir}/$tool
+    rm -f %{buildroot}%{_bindir}/$tool
+done
 
 %ldconfig_scriptlets
 
@@ -55,7 +78,7 @@ Development files.
 %{_sbindir}/pqos-msr
 %{_sbindir}/pqos-os
 %{_sbindir}/rdtset
-%{_libdir}/libpqos.so.5
+%{_libdir}/libpqos.so.6
 %{_libdir}/libpqos.so.%{libpqos_ver}
 %{_mandir}/man8/membw.8*
 %{_mandir}/man8/pqos.8*
@@ -68,6 +91,27 @@ Development files.
 %{_libdir}/libpqos.so
 
 %changelog
+* Mon Oct 13 2025 Tony Camuso <tcamuso@redhat.com> - 25.04-1
+Clean up install paths, drop obsolete patches, and improve flag injection
+handling
+- Replaced hard-coded install paths in Makefiles with sed-based DESTDIR
+  fixes for lib, pqos, rdtset, and membw
+  - Using sed during %prep is more robust and version-agnostic than patching,
+    which requires rebasing each release
+- Relocated admin tools (pqos*, rdtset) from /usr/bin to /usr/sbin for FHS
+  compliance
+  - These tools require root and interact with system-level cache controls
+- Updated %files to match SONAME bump (libpqos.so.5 -> libpqos.so.6) introduced
+  upstream
+- Dropped patches 0001, 0002, 0004, 0005
+  - 0001/0002 replaced by sed
+  - 0004/0005 merged upstream
+- Replaced patch 0003 (CFLAGS/LDFLAGS override) with sed to convert assignments
+  to +=
+  - Ensures compatibility with distro-injected flags (e.g. %{optflags},
+    hardening) without carrying a version-specific patch
+  Resolves: RHEL-118205
+
 * Tue Oct 29 2024 Troy Dawson <tdawson@redhat.com> - 23.11-6
 - Bump release for October 2024 mass rebuild:
   Resolves: RHEL-64018
