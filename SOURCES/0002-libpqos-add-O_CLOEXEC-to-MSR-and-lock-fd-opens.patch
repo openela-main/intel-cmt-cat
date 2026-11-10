@@ -1,0 +1,37 @@
+--- intel-cmt-cat-26.03/lib/machine.c.orig	2026-08-03 11:44:50.527961493 -0400
++++ intel-cmt-cat-26.03/lib/machine.c	2026-08-03 11:45:17.007915228 -0400
+@@ -176,7 +176,7 @@ msr_file_open(const unsigned lcore)
+ #ifdef __FreeBSD__
+                 snprintf(fname, sizeof(fname) - 1, "/dev/cpuctl%u", lcore);
+ #endif
+-                fd = open(fname, O_RDWR);
++                fd = open(fname, O_RDWR | O_CLOEXEC);
+                 if (fd < 0)
+                         LOG_WARN("Error opening file '%s'!\n", fname);
+                 else
+--- intel-cmt-cat-26.03/lib/lock.c.orig	2026-08-03 11:44:50.530961488 -0400
++++ intel-cmt-cat-26.03/lib/lock.c	2026-08-03 11:45:35.562882814 -0400
+@@ -223,7 +223,8 @@ lock_init(void)
+         }
+ 
+         /* Open lock file atomically (create if not exists) */
+-        m_apilock = open(LOCKFILE, O_RDWR | O_CREAT | O_EXCL, LOCKFILE_PERMS);
++        m_apilock =
++            open(LOCKFILE, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, LOCKFILE_PERMS);
+         if (m_apilock == -1) {
+                 if (errno == EEXIST) {
+                         /* Lock file exists, check if it is stale */
+@@ -243,9 +244,10 @@ lock_init(void)
+                                 }
+                                 /* Creating the lock file after removing the
+                                  * stale one */
+-                                m_apilock =
+-                                    open(LOCKFILE, O_RDWR | O_CREAT | O_EXCL,
+-                                         LOCKFILE_PERMS);
++                                m_apilock = open(
++                                    LOCKFILE,
++                                    O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC,
++                                    LOCKFILE_PERMS);
+                                 if (m_apilock == -1) {
+                                         fprintf(stderr,
+                                                 "Couldn't create lock file: "

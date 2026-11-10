@@ -1,0 +1,24 @@
+--- intel-cmt-cat-26.03/rdtset/rdtset.c.orig	2026-08-03 11:44:50.525961496 -0400
++++ intel-cmt-cat-26.03/rdtset/rdtset.c	2026-08-03 11:45:03.535938765 -0400
+@@ -181,6 +181,21 @@ execute_cmd(int argc, char **argv)
+                 if (0 == g_cfg.sudo_keep && 0 != sudo_drop())
+                         _exit_flush(EXIT_FAILURE);
+ 
++                /* Close all non-stdio file descriptors to prevent
++                 * leaking privileged descriptors (e.g. MSR device fds)
++                 * to the sub-command after privilege drop.
++                 */
++                {
++                        long maxfd = sysconf(_SC_OPEN_MAX);
++                        int fd;
++
++                        if (maxfd < 0)
++                                maxfd = 1024;
++
++                        for (fd = STDERR_FILENO + 1; fd < maxfd; fd++)
++                                close(fd);
++                }
++
+                 errno = 0;
+                 /* execute command */
+                 execvp(argv[0], argv);

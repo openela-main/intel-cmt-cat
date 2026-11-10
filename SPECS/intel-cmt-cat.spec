@@ -1,4 +1,4 @@
-%global libpqos_ver 6.0.1
+%global libpqos_ver 7.0.0
 %global desc %{expand: \
 This package provides basic support for Intel Resource Director Technology
 including, Cache Monitoring Technology (CMT), Memory Bandwidth Monitoring
@@ -6,13 +6,17 @@ including, Cache Monitoring Technology (CMT), Memory Bandwidth Monitoring
 (CDP) and Memory Bandwidth Allocation (MBA).}
 
 Name:		intel-cmt-cat
-Version:	25.04
-Release:	1%{?dist}
+Version:	26.03
+Release:	2%{?dist}
 Summary:	Intel cache monitoring and allocation technology config tool
 
 License:	BSD-3-Clause
 URL: 		https://github.com/intel/intel-cmt-cat
 Source: 	%{url}/archive/v%{version}/%{name}-%{version}.tar.gz
+
+Patch0001:	0001-rdtset-close-inherited-fds-before-execvp.patch
+Patch0002:	0002-libpqos-add-O_CLOEXEC-to-MSR-and-lock-fd-opens.patch
+Patch0003:	0003-pqos-safe_fopen-use-O_NOFOLLOW-to-prevent-symlink-race.patch
 
 ExclusiveArch:	x86_64
 
@@ -78,7 +82,7 @@ done
 %{_sbindir}/pqos-msr
 %{_sbindir}/pqos-os
 %{_sbindir}/rdtset
-%{_libdir}/libpqos.so.6
+%{_libdir}/libpqos.so.7
 %{_libdir}/libpqos.so.%{libpqos_ver}
 %{_mandir}/man8/membw.8*
 %{_mandir}/man8/pqos.8*
@@ -91,6 +95,27 @@ done
 %{_libdir}/libpqos.so
 
 %changelog
+* Wed Aug 05 2026 Tony Camuso <tcamuso@redhat.com> - 26.03-2
+- New security patches (0001-0003, unrelated to the install-path patches
+  dropped in 25.04-1):
+- 0001: Fix privileged file descriptor leak in rdtset
+  Close all inherited non-stdio fds in the child process after sudo_drop()
+  and before execvp() to prevent leaking MSR device descriptors to attacker-
+  controlled sub-commands.
+- 0002: Add O_CLOEXEC to long-lived descriptor opens in lib/machine.c and
+  lib/lock.c as defense-in-depth against fd leaks across exec boundaries
+  Resolves: RHEL-214298
+- 0003: Fix symlink race condition in pqos safe_fopen()
+  Replace fopen()   with open(O_NOFOLLOW) + fdopen() so symlink targets
+  cannot be truncated before the post-open validation detects the symlink.
+  Resolves: RHEL-214424
+
+* Wed Jun 17 2026 Dennis Chen <dechen@redhat.com> - 26.03-1
+- Updated to latest upstream v26.03.
+- Updated %files to match SONAME bump (libpqos.so.6.0.1 -> libpqos.so.7.0.0) introduced
+  upstream
+  Resolves: RHEL-185861
+
 * Mon Oct 13 2025 Tony Camuso <tcamuso@redhat.com> - 25.04-1
 Clean up install paths, drop obsolete patches, and improve flag injection
 handling
