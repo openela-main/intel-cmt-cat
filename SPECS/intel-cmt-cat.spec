@@ -24,7 +24,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 %global githubname   intel-cmt-cat
-%global githubver    25.04
+%global githubver    26.03
 
 %if %{defined githubsubver}
 %global githubfull   %{githubname}-%{githubver}.%{githubsubver}
@@ -151,7 +151,7 @@ install -m 0644 %{_builddir}/%{githubfull}/LICENSE %{buildroot}/%{_licensedir}/%
 install -d %{buildroot}/%{_libdir}
 install -s %{_builddir}/%{githubfull}/lib/libpqos.so.* %{buildroot}/%{_libdir}
 cp -a %{_builddir}/%{githubfull}/lib/libpqos.so %{buildroot}/%{_libdir}
-cp -a %{_builddir}/%{githubfull}/lib/libpqos.so.6 %{buildroot}/%{_libdir}
+cp -a %{_builddir}/%{githubfull}/lib/libpqos.so.7 %{buildroot}/%{_libdir}
 
 # Install the header file
 install -d %{buildroot}/%{_includedir}
@@ -205,7 +205,7 @@ install -m 0644 %{_builddir}/%{githubfull}/examples/c/PSEUDO_LOCK/tsc.h         
 
 %files -n intel-cmt-cat-devel
 %{_libdir}/libpqos.so
-%{_libdir}/libpqos.so.6
+%{_libdir}/libpqos.so.7
 %{_includedir}/pqos.h
 %{_usrsrc}/%{githubfull}/c/CAT_MBA/Makefile
 %{_usrsrc}/%{githubfull}/c/CAT_MBA/README
@@ -227,6 +227,12 @@ install -m 0644 %{_builddir}/%{githubfull}/examples/c/PSEUDO_LOCK/tsc.h         
 %doc %{_usrsrc}/%{githubfull}/LICENSE
 
 %changelog
+* Wed Jun 17 2026 Dennis Chen <dechen@redhat.com> - 26.03-1
+- Update to latest upstream v26.03.
+- Updated %files to match SONAME bump (libpqos.so.6 -> libpqos.so.7) introduced
+  upstream
+  Resolves: RHEL-185862
+
 * Fri Oct 24 2025 Tony Camuso <tcamuso@redhat.com> - 25.04-1
 - Update to latest upstream.
 - Clean up install paths, drop obsolete patches, and improve flag injection
